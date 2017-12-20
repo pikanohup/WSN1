@@ -34,23 +34,40 @@
  */
 
 /**
- * 
+ *
  * Sensing demo application. See README.txt file in this directory for usage
  * instructions and have a look at tinyos-2.x/doc/html/tutorial/lesson5.html
  * for a general tutorial on sensing in TinyOS.
- * 
+ *
  * @author Jan Hauer
  */
 
-configuration SenseAppC 
-{ 
-} 
-implementation { 
-  
-  components SenseC, MainC, LedsC, new TimerMilliC(), new DemoSensorC() as Sensor;
+configuration SenseAppC
+{
+}
+implementation {
 
-  SenseC.Boot -> MainC;
-  SenseC.Leds -> LedsC;
-  SenseC.Timer -> TimerMilliC;
-  SenseC.Read -> Sensor;
+  components SensorC, MainC, LedsC;
+  components PrintfC;
+  components new TimerMilliC();
+  //get light information
+  components new HamamatsuS1087ParC();
+  //get temperature and humidity information
+  components new SensirionSht11C();
+
+  components ActiveMessageC;
+  components new AMSenderC(AM_SAMPLE_MSG);
+  components new AMReceiverC(AM_CONTROL_MSG);
+
+  SensorC -> MainC.Boot;
+  SensorC.Leds -> LedsC;
+  SensorC.Timer -> TimerMilliC;
+  SensorC.Packet -> AMSenderC;
+  SensorC.AMPacket -> AMSenderC;
+  SensorC.RadioControl -> ActiveMessageC;
+  SensorC.AMSend -> AMSenderC;
+  SensorC.Receive -> AMReceiverC;
+  SensorC.TemperatureRead -> SensirionSht11C.Temperature;
+  SensorC.HumidityRead -> SensirionSht11C.Humidity;
+  SensorC.LightRead -> HamamatsuS1087ParC;
 }
