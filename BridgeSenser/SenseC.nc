@@ -43,6 +43,9 @@
  */
 
 #include "Timer.h"
+#include "printf.h"
+#include "SensirionSht11.h"
+#include "../BaseStation/Msg.h"
 
 module SenseC
 {
@@ -50,38 +53,57 @@ module SenseC
     interface Boot;
     interface Leds;
     interface Timer<TMilli>;
-    interface Read<uint16_t>;
+    interface Read<uint16_t> as TemperatureRead;
+	interface Read<uint16_t> as HumidityRead;
+	interface Read<uint16_t> as LightRead;
   }
 }
 implementation
-{
-  // sampling frequency in binary milliseconds
-  #define SAMPLING_FREQUENCY 100
-  
+{  
   event void Boot.booted() {
-    call Timer.startPeriodic(SAMPLING_FREQUENCY);
+    call Timer.startPeriodic(DEFAULT_INTERVAL);
   }
 
   event void Timer.fired() 
   {
-    call Read.read();
+    call TemperatureRead.read();
+    call HumidityRead.read();
+    call LightRead.read();
   }
 
-  event void Read.readDone(error_t result, uint16_t data) 
+  event void TemperatureRead.readDone(error_t result, uint16_t data) 
   {
-    if (result == SUCCESS){
-      if (data & 0x0004)
-        call Leds.led2On();
-      else
-        call Leds.led2Off();
-      if (data & 0x0002)
-        call Leds.led1On();
-      else
-        call Leds.led1Off();
-      if (data & 0x0001)
-        call Leds.led0On();
-      else
-        call Leds.led0Off();
+    if (result == SUCCESS) {
+	  uint16_t temperature = (uint16_t)((data * 0.01 - 40.1) - 32) / 1.8;
+	  printf("Temperature: %d\n", temperature);
+    }
+	else {
+      printf("Get temperature failed\n");
+      call TemperatureRead.read();
+    }
+  }
+  
+  event void HumidityRead.readDone(error_t result, uint16_t data) 
+  {
+    if (result == SUCCESS) {
+	  uint16_t humidity = (uint16_t)(-4 + 0.0405 * data + (-2.8 * 0.00001) * (data * data));
+	  printf("Humidity: %d\n", humidity);
+    }
+	else {
+      printf("Get humidity failed\n");
+      call HumidityRead.read();
+    }
+  }
+  
+  event void LightRead.readDone(error_t result, uint16_t data) 
+  {
+    if (result == SUCCESS) {
+      uint16_t light = 0.625 * 10 * data * 1.5 / 4.096;
+	  printf("Light: %d\n", light);
+    }
+	else {
+      printf("Get light failed\n");
+      call LightRead.read();
     }
   }
 }

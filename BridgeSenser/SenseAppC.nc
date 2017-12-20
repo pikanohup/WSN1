@@ -47,10 +47,17 @@ configuration SenseAppC
 } 
 implementation { 
   
-  components SenseC, MainC, LedsC, new TimerMilliC(), new DemoSensorC() as Sensor;
+  components SenseC, MainC, LedsC;
+  components PrintfC;
+  components SerialStartC;
+  components new TimerMilliC();
+  components new HamamatsuS1087ParC();
+  components new SensirionSht11C();
 
   SenseC.Boot -> MainC;
   SenseC.Leds -> LedsC;
   SenseC.Timer -> TimerMilliC;
-  SenseC.Read -> Sensor;
+  SenseC.TemperatureRead -> SensirionSht11C.Temperature;
+  SenseC.HumidityRead -> SensirionSht11C.Humidity;
+  SenseC.LightRead -> HamamatsuS1087ParC;
 }
