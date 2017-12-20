@@ -8,24 +8,20 @@ enum {
     BASE_STATION_ID = 1,
     BRIDGE_SENSER_ID = 2,
     SENSER_ID = 3,
-    SAMPLE_NUM = 3
 };
 
 typedef nx_struct SampleMsg {
-	nx_uint16_t version;
-    nx_uint16_t frequency;
     nx_uint8_t nodeId;
     nx_uint16_t time;
-    nx_uint16_t temperature[SAMPLE_NUM];
-    nx_uint16_t humidity[SAMPLE_NUM];
-    nx_uint16_t light[SAMPLE_NUM];
+    nx_uint16_t temperature;
+    nx_uint16_t humidity;
+    nx_uint16_t light;
 } SampleMsg;
 
 typedef nx_struct ControlMsg {
     nx_uint8_t rootId;
-    nx_uint16_t confirmTime;
-    nx_uint16_t samplingFrequency;
-    nx_uint16_t frequencyVersion;
+    nx_uint16_t frequency;
+    nx_uint16_t version;
 } ControlMsg;
 
 #endif
