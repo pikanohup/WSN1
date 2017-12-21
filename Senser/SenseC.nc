@@ -210,15 +210,16 @@ implementation
 
 /*------------------receive part-----------------------*/
   event message_t* Receive.receive(message_t* msg, void payload, uint8_t len) {
-    if( len == sizeof(ControlMsg)) {
-      ControlMsg* cur_controlMsg = (ControlMsg*)payload;
-      if(cur_controlMsg.version > cur_Version) {
-        cur_Version = cur_controlMsg.version;
-        cur_frequency = cur_controlMsg.frequency;
+    if( len == sizeof(CommandMsg)) {
+      CommandMsg* cur_commandMsg = (CommandMsg*)payload;
+      if(cur_commandMsg.version > cur_Version) {
+        cur_Version = cur_commandMsg.version;
+        cur_frequency = cur_commandMsg.frequency;
         call Timer.stop();
         call Timer.startPeriodic(cur_frequency);
       }
     }
+    return msg;
   }
 
 }
