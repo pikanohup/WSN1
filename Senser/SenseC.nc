@@ -83,6 +83,7 @@ implementation
   void Init();
   void checkPacket();
 
+/*------------------init part-----------------------*/
   void Init() {
     cur_message.nodeId = TOS_NODE_ID;
     cur_message.time = 0;
@@ -113,6 +114,7 @@ implementation
 
   }
 
+/*------------------send part-----------------------*/
   event void Timer.fired()
   {
     call TemperatureRead.read();
@@ -123,11 +125,11 @@ implementation
   event void TemperatureRead.readDone(error_t result, uint16_t data)
   {
     if (result == SUCCESS) {
-	  uint16_t temperature = (uint16_t)((data * 0.01 - 40.1) - 32) / 1.8;
-    cur_message.temperature = temperature;
-    num_information = num_information + 1;
-    checkPacket();
-	  printf("Temperature: %d\n", temperature);
+  	  uint16_t temperature = (uint16_t)((data * 0.01 - 40.1) - 32) / 1.8;
+      cur_message.temperature = temperature;
+      num_information = num_information + 1;
+      checkPacket();
+  	  printf("Temperature: %d\n", temperature);
     }
 	else {
       printf("Get temperature failed\n");
@@ -138,11 +140,11 @@ implementation
   event void HumidityRead.readDone(error_t result, uint16_t data)
   {
     if (result == SUCCESS) {
-	  uint16_t humidity = (uint16_t)(-4 + 0.0405 * data + (-2.8 * 0.00001) * (data * data));
-    cur_message.humidity = humidity;
-    num_information = num_information + 1;
-    checkPacket();
-    printf("Humidity: %d\n", humidity);
+  	  uint16_t humidity = (uint16_t)(-4 + 0.0405 * data + (-2.8 * 0.00001) * (data * data));
+      cur_message.humidity = humidity;
+      num_information = num_information + 1;
+      checkPacket();
+      printf("Humidity: %d\n", humidity);
     }
 	else {
       printf("Get humidity failed\n");
@@ -165,20 +167,6 @@ implementation
     }
   }
 
-  event message_t* Receive.receive(message_t* msg, void payload, uint8_t len) {
-    if( len == sizeof(ControlMsg)) {
-      ControlMsg* cur_controlMsg = (ControlMsg*)payload;
-      if(cur_controlMsg.version > cur_Version) {
-        cur_Version = cur_controlMsg.version;
-        cur_frequency = cur_controlMsg.frequency;
-        call Timer.stop();
-        call Timer.startPeriodic(cur_frequency);
-      }
-    }
-  }
-}
-
-
 /*------------------send part-----------------------*/
   task void SendTask() {
     message_t* packet = msgQueue + queueTail % MSG_QUEUE_LEN;
@@ -192,7 +180,6 @@ implementation
       }
     }
   }
-
 
   void SendMsg(SampleMsg* msg) {
     /*queue full*/
@@ -220,3 +207,18 @@ implementation
       post SendTask();
     }
   }
+
+/*------------------receive part-----------------------*/
+  event message_t* Receive.receive(message_t* msg, void payload, uint8_t len) {
+    if( len == sizeof(ControlMsg)) {
+      ControlMsg* cur_controlMsg = (ControlMsg*)payload;
+      if(cur_controlMsg.version > cur_Version) {
+        cur_Version = cur_controlMsg.version;
+        cur_frequency = cur_controlMsg.frequency;
+        call Timer.stop();
+        call Timer.startPeriodic(cur_frequency);
+      }
+    }
+  }
+
+}
