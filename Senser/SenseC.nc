@@ -65,6 +65,19 @@ module SensorC
 }
 implementation
 {
+  enum {
+    MSG_QUEUE_LEN = 12
+  };
+
+  SampleMsg cur_message;
+  message_t msgQueue[MSG_QUEUE_LEN];
+  uint32_t queueHead = 0;
+  uint32_t queueTail = 0;
+  bool Busy = FALSE;
+  bool Ack = TRUE;
+
+  void SendMsg(SampleMsg* msg);
+
   event void Boot.booted() {
     call Timer.startPeriodic(DEFAULT_INTERVAL);
   }
