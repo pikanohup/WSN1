@@ -65,6 +65,20 @@ module SensorC
 }
 implementation
 {
+  enum {
+      MSG_QUEUE_LEN = 12
+  };
+
+  SampleMsg cur_message;
+  message_t msgQueue[MSG_QUEUE_LEN];
+  uint32_t queueHead = 0;
+  uint32_t queueTail = 0;
+  bool Busy = FALSE;
+
+  void SendMsg(SampleMsg* msg);
+
+
+
   event void Boot.booted() {
     call Timer.startPeriodic(DEFAULT_INTERVAL);
   }
@@ -112,3 +126,46 @@ implementation
     }
   }
 }
+
+
+/*------------------send part-----------------------*/
+  task void SendTask() {
+    message_t* packet = msgQueue + queueTail % MSG_QUEUE_LEN;
+
+    if (call AMSend.send(AM_BROADCAST_ADDR, packet, sizeof(SampleMsg)) == SUCCESS) {
+      Busy = TRUE;    // update busy state
+    } else {
+      queueHead = (queueHead + 1) % MSG_QUEUE_LEN;
+      if (queueHead < queueTail) {
+        post SendTask();
+      }
+    }
+  }
+
+
+  void SendMsg(SampleMsg* msg) {
+    /*queue full*/
+    if (queueHead + MSG_QUEUE_LEN <= queueTail) {
+      return;
+    }
+
+    message_t* packet = msgQueue + queueTail % MSG_QUEUE_LEN;
+    void* payload = call AMSend.getPayloa(packet, sizeof(SampleMsg));
+
+    memcpy(payload, msg, sizeof(SampleMsg));
+
+    if (queueHead == queueTail) {
+      post SendTask();
+    }
+
+    queueTail = (queueTail + 1) % MSG_QUEUE_LEN;
+  }
+
+  event void AMSend.sendDone(message_t* msg, error_t srr) {
+    Busy = FALSE;
+    queueHead = (queueHead + 1) % MSG_QUEUE_LEN;
+
+    if (queueHead > queueTail) {
+      post SendTask();
+    }
+  }
