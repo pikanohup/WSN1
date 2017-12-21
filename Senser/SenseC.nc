@@ -66,21 +66,51 @@ module SensorC
 implementation
 {
   enum {
-      MSG_QUEUE_LEN = 12
+    MSG_QUEUE_LEN = 12
   };
 
   SampleMsg cur_message;
   message_t msgQueue[MSG_QUEUE_LEN];
+
+  uint8_t num_information = 0; // once reached 3, packet ready
+  uint8_t cur_Version = 0;
   uint32_t queueHead = 0;
   uint32_t queueTail = 0;
+  uint16_t cur_frequency = DEFAULT_INTERVAL;
   bool Busy = FALSE;
 
   void SendMsg(SampleMsg* msg);
+  void Init();
+  void checkPacket();
 
+  void Init() {
+    cur_message.nodeId = TOS_NODE_ID;
+    cur_message.time = 0;
+  }
 
+  void checkPacket() {
+    if (num_information >= 3) {
+      SendMsg(&cur_message);
+      num_information = 0;
+    }
+  }
 
   event void Boot.booted() {
-    call Timer.startPeriodic(DEFAULT_INTERVAL);
+    Init();
+    call RadioControl.start();
+  }
+
+  event void RadioControl.startDone(error_t err) {
+    if(err == SUCCESS) {
+      call Timer.startPeriodic(cur_frequency);
+    }
+    else {
+      call RadioControl.start();
+    }
+  }
+
+  event void RadioControl.stopDone(error_t err) {
+
   }
 
   event void Timer.fired()
@@ -94,6 +124,9 @@ implementation
   {
     if (result == SUCCESS) {
 	  uint16_t temperature = (uint16_t)((data * 0.01 - 40.1) - 32) / 1.8;
+    cur_message.temperature = temperature;
+    num_information = num_information + 1;
+    checkPacket();
 	  printf("Temperature: %d\n", temperature);
     }
 	else {
@@ -106,7 +139,10 @@ implementation
   {
     if (result == SUCCESS) {
 	  uint16_t humidity = (uint16_t)(-4 + 0.0405 * data + (-2.8 * 0.00001) * (data * data));
-	  printf("Humidity: %d\n", humidity);
+    cur_message.humidity = humidity;
+    num_information = num_information + 1;
+    checkPacket();
+    printf("Humidity: %d\n", humidity);
     }
 	else {
       printf("Get humidity failed\n");
@@ -116,13 +152,28 @@ implementation
 
   event void LightRead.readDone(error_t result, uint16_t data)
   {
-    if (result == SUCCESS) {
+    if(result == SUCCESS) {
       uint16_t light = 0.625 * 10 * data * 1.5 / 4.096;
-	  printf("Light: %d\n", light);
+      cur_message.light = light;
+      num_information = num_information + 1;
+      checkPacket();
+	    printf("Light: %d\n", light);
     }
 	else {
       printf("Get light failed\n");
       call LightRead.read();
+    }
+  }
+
+  event message_t* Receive.receive(message_t* msg, void payload, uint8_t len) {
+    if( len == sizeof(ControlMsg)) {
+      ControlMsg* cur_controlMsg = (ControlMsg*)payload;
+      if(cur_controlMsg.version > cur_Version) {
+        cur_Version = cur_controlMsg.version;
+        cur_frequency = cur_controlMsg.frequency;
+        call Timer.stop();
+        call Timer.startPeriodic(cur_frequency);
+      }
     }
   }
 }
