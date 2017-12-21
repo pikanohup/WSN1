@@ -71,6 +71,7 @@ implementation
 
   SampleMsg cur_message;
   message_t msgQueue[MSG_QUEUE_LEN];
+
   uint8_t num_information = 0; // once reached 3, packet ready
   uint8_t cur_Version = 0;
   uint32_t queueHead = 0;
@@ -93,6 +94,7 @@ implementation
       num_information = 0;
     }
   }
+
   event void Boot.booted() {
     Init();
     call RadioControl.start();
@@ -175,3 +177,46 @@ implementation
     }
   }
 }
+
+
+/*------------------send part-----------------------*/
+  task void SendTask() {
+    message_t* packet = msgQueue + queueTail % MSG_QUEUE_LEN;
+
+    if (call AMSend.send(AM_BROADCAST_ADDR, packet, sizeof(SampleMsg)) == SUCCESS) {
+      Busy = TRUE;    // update busy state
+    } else {
+      queueHead = (queueHead + 1) % MSG_QUEUE_LEN;
+      if (queueHead < queueTail) {
+        post SendTask();
+      }
+    }
+  }
+
+
+  void SendMsg(SampleMsg* msg) {
+    /*queue full*/
+    if (queueHead + MSG_QUEUE_LEN <= queueTail) {
+      return;
+    }
+
+    message_t* packet = msgQueue + queueTail % MSG_QUEUE_LEN;
+    void* payload = call AMSend.getPayloa(packet, sizeof(SampleMsg));
+
+    memcpy(payload, msg, sizeof(SampleMsg));
+
+    if (queueHead == queueTail) {
+      post SendTask();
+    }
+
+    queueTail = (queueTail + 1) % MSG_QUEUE_LEN;
+  }
+
+  event void AMSend.sendDone(message_t* msg, error_t srr) {
+    Busy = FALSE;
+    queueHead = (queueHead + 1) % MSG_QUEUE_LEN;
+
+    if (queueHead > queueTail) {
+      post SendTask();
+    }
+  }
