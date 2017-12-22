@@ -12,6 +12,8 @@ enum {
 
 typedef nx_struct SampleMsg {
     nx_uint8_t nodeId;
+	nx_uint16_t frequency;
+    nx_uint16_t version;
     nx_uint16_t time;
     nx_uint16_t temperature;
     nx_uint16_t humidity;

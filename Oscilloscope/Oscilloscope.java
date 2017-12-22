@@ -76,23 +76,23 @@ public class Oscilloscope implements MessageListener
             SampleMsg omsg = (SampleMsg)msg;
 
             /* Update interval and mote data */
-            periodUpdate(omsg.get_version(), omsg.get_interval());
-            data.update(omsg.get_id(), omsg.get_count(), omsg.get_readings());
+            periodUpdate(omsg.get_version(), omsg.get_frequency());
+            data.update(omsg);
 
             /* Inform the GUI that new data showed up */
             window.newData();
 
             /* Print out the data */
-            printData(msg);
+            printData((SampleMsg)msg);
         }
     }
 
     /* Print out the data */
     void printData(SampleMsg msg) {
-        String data = msg.get_nodeId() + ' ' +
-                        msg.get_time() + ' ' +
-                        msg.get_temperature() + ' ' +
-                        msg.get_humidity() + ' '+
+        String data = msg.get_nodeId() + " " +
+                        msg.get_time() + " " +
+                        msg.get_temperature() + " " +
+                        msg.get_humidity() + " " +
                         msg.get_light();
 
         /* Print to file */

@@ -58,8 +58,8 @@ module SensorC
     interface AMSend;
     interface SplitControl as RadioControl;
     interface Read<uint16_t> as TemperatureRead;
-    interface Read<uint16_t> as HumidityRead;
-    interface Read<uint16_t> as LightRead;
+	  interface Read<uint16_t> as HumidityRead;
+	  interface Read<uint16_t> as LightRead;
     interface Receive as SampleMsgReceiver;
     interface Receive as CommandMsgReceiver;
   }
@@ -213,6 +213,7 @@ implementation
   }
 
 /*------------------receive part-----------------------*/
+
   event message_t* CommandMsgReceiver.receive(message_t* msg, void* payload, uint8_t len) {
     if( len == sizeof(CommandMsg)) {
       CommandMsg* cur_commandMsg = (CommandMsg*)payload;
