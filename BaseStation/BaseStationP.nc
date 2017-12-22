@@ -150,11 +150,19 @@ implementation
   }
   
   task void serialSendTask() {
+	am_addr_t source;
+    message_t* msg;
+	
     atomic
       if (serialIn == serialOut && !serialFull) {
 	  serialBusy = FALSE;
 	  return;
 	}
+	
+	msg = serialQueue[serialOut];
+	source = call RadioAMPacket.source(msg);
+	call SerialPacket.clear(msg);
+    call SerialAMPacket.setSource(msg, source);
 
     if (call SerialAMSend.send(AM_BROADCAST_ADDR, serialQueue[serialOut], sizeof(SampleMsg)) == SUCCESS) {
       call Leds.led0Toggle();
@@ -166,12 +174,20 @@ implementation
   }
   
   task void radioSendTask() {
+	am_addr_t source;
+    message_t* msg;
+	
     atomic
       if (radioIn == radioOut && !radioFull) {
 	  radioBusy = FALSE;
 	  return;
 	}
 
+	msg = radioQueue[radioOut];
+	source = call SerialAMPacket.source(msg);
+	call RadioPacket.clear(msg);
+    call RadioAMPacket.setSource(msg, source);
+	
     if (call RadioAMSend.send(AM_BROADCAST_ADDR, radioQueue[radioOut], sizeof(SampleMsg)) == SUCCESS) {
       call Leds.led0Toggle();
 	} 
@@ -183,16 +199,12 @@ implementation
   
   message_t* forwardSampleMsg(message_t *msg, void *payload, uint8_t len) {
     message_t *ret = msg;
-	// void* sendPayload;
-
+	
     atomic {
       if (!serialFull)
 	{
 	  ret = serialQueue[serialIn];
 	  serialQueue[serialIn] = msg;
-	  
-	  // sendPayload = call SerialAMSend.getPayload(serialQueue[serialIn], sizeof(SampleMsg));
-	  // memcpy(sendPayload, payload, sizeof(SampleMsg));
 
 	  serialIn = (serialIn + 1) % SERIAL_QUEUE_LEN;
 	
@@ -214,16 +226,12 @@ implementation
   
   message_t* forwardControlMsg(message_t *msg, void *payload, uint8_t len) {
     message_t *ret = msg;
-	// void* sendPayload;
 
     atomic {
       if (!radioFull)
 	{
 	  ret = radioQueue[radioIn];
 	  radioQueue[radioIn] = msg;
-	  
-	  // sendPayload = call RadioAMSend.getPayload(radioQueue[serialIn], sizeof(ControlMsg));
-	  // memcpy(sendPayload, payload, sizeof(ControlMsg));
 
 	  radioIn = (radioIn + 1) % RADIO_QUEUE_LEN;
 	
