@@ -1,4 +1,4 @@
-COMPONENT=SenseAppC
+COMPONENT=SensorAppC
 
 CFLAGS += -I$(TOSDIR)/lib/printf
 

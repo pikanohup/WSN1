@@ -225,7 +225,7 @@ class Graph extends JPanel
 
     /* New data received. Redraw graph, scrolling if necessary */
     void newData() {
-        int max = parent.parent.data.maxX();
+        int max = parent.parent.data.maxTime();
 
         if (max > gx1 || max < gx0) {
             recenter(max);
@@ -237,7 +237,7 @@ class Graph extends JPanel
     void setScale(int newScale) {
         gx1 = gx0 + (MIN_WIDTH << newScale);
         scale = newScale;
-        recenter(parent.parent.data.maxX());
+        recenter(parent.parent.data.maxTime());
         repaint();
     }
 
