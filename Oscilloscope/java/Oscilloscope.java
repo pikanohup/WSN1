@@ -2,9 +2,9 @@
  * Copyright (c) 2006 Intel Corporation
  * All rights reserved.
  *
- * This file is distributed under the terms in the attached INTEL-LICENSE     
+ * This file is distributed under the terms in the attached INTEL-LICENSE
  * file. If you do not find these files, copies can be found by writing to
- * Intel Research Berkeley, 2150 Shattuck Avenue, Suite 1300, Berkeley, CA, 
+ * Intel Research Berkeley, 2150 Shattuck Avenue, Suite 1300, Berkeley, CA,
  * 94704.  Attention:  Intel License Inquiry.
  */
 
@@ -38,6 +38,7 @@ public class Oscilloscope implements MessageListener
     MoteIF mote;
     Data data;
     Window window;
+    PrintWriter printWriter;
 
     /* The current sampling period. If we receive a message from a mote
        with a newer version, we update our interval. If we receive a message
@@ -49,82 +50,107 @@ public class Oscilloscope implements MessageListener
 
     /* Main entry point */
     void run() {
-    data = new Data(this);
-    window = new Window(this);
-    window.setup();
-    mote = new MoteIF(PrintStreamMessenger.err);
-    mote.registerListener(new OscilloscopeMsg(), this);
+        data = new Data(this);
+        window = new Window(this);
+        window.setup();
+        mote = new MoteIF(PrintStreamMessenger.err);
+        mote.registerListener(new OscilloscopeMsg(), this);
+
+        /* create result file */
+        try {
+            printWriter = new PrintWriter("./result.txt", "UTF-8");
+        } catch (IOException e) {
+            System.err.println("Fail to open file [result.txt].");
+        }
     }
 
     /* The data object has informed us that nodeId is a previously unknown
        mote. Update the GUI. */
     void newNode(int nodeId) {
-    window.newNode(nodeId);
+        window.newNode(nodeId);
     }
 
-    public synchronized void messageReceived(int dest_addr, 
+    public synchronized void messageReceived(int dest_addr,
             Message msg) {
-    if (msg instanceof OscilloscopeMsg) {
-        OscilloscopeMsg omsg = (OscilloscopeMsg)msg;
+        if (msg instanceof OscilloscopeMsg) {
+            OscilloscopeMsg omsg = (OscilloscopeMsg)msg;
 
-        /* Update interval and mote data */
-        periodUpdate(omsg.get_version(), omsg.get_interval());
-        data.update(omsg.get_id(), omsg.get_count(), omsg.get_readings());
+            /* Update interval and mote data */
+            periodUpdate(omsg.get_version(), omsg.get_interval());
+            data.update(omsg.get_id(), omsg.get_count(), omsg.get_readings());
 
-        /* Inform the GUI that new data showed up */
-        window.newData();
+            /* Inform the GUI that new data showed up */
+            window.newData();
+
+            /* Print out the data */
+            printData(msg);
+        }
     }
+
+    /* Print out the data */
+    void printData(SampleMsg msg) {
+        String data = msg.get_nodeId() + ' ' +
+                        msg.get_time() + ' ' +
+                        msg.get_temperature() + ' ' +
+                        msg.get_humidity() + ' '+
+                        msg.get_light();
+
+        /* Print to file */
+        printWriter.println(data);
+        printWriter.flush();
+        /* Print in terminal */
+        System.out.println(data);
     }
 
     /* A potentially new version and interval has been received from the
        mote */
     void periodUpdate(int moteVersion, int moteInterval) {
-    if (moteVersion > version) {
-        /* It's new. Update our vision of the interval. */
-        version = moteVersion;
-        interval = moteInterval;
-        window.updateSamplePeriod();
-    }
-    else if (moteVersion < version) {
-        /* It's old. Update the mote's vision of the interval. */
-        sendInterval();
-    }
+        if (moteVersion > version) {
+            /* It's new. Update our vision of the interval. */
+            version = moteVersion;
+            interval = moteInterval;
+            window.updateSamplePeriod();
+        }
+        else if (moteVersion < version) {
+            /* It's old. Update the mote's vision of the interval. */
+            sendInterval();
+        }
     }
 
     /* The user wants to set the interval to newPeriod. Refuse bogus values
        and return false, or accept the change, broadcast it, and return
        true */
     synchronized boolean setInterval(int newPeriod) {
-    if (newPeriod < 1 || newPeriod > 65535) {
-        return false;
-    }
-    interval = newPeriod;
-    version++;
-    sendInterval();
-    return true;
+        if (newPeriod < 1 || newPeriod > 65535) {
+            return false;
+        }
+        interval = newPeriod;
+        version++;
+        sendInterval();
+        return true;
     }
 
     /* Broadcast a version+interval message. */
     void sendInterval() {
-    OscilloscopeMsg omsg = new OscilloscopeMsg();
+        ControlMsg msg = new ControlMsg();
 
-    omsg.set_version(version);
-    omsg.set_interval(interval);
-    try {
-        mote.send(MoteIF.TOS_BCAST_ADDR, omsg);
-    }
-    catch (IOException e) {
-        window.error("Cannot send message to mote");
-    }
+        msg.set_version(version);
+        msg.set_frequency(interval);
+        try {
+            mote.send(MoteIF.TOS_BCAST_ADDR, msg);
+        }
+        catch (IOException e) {
+            window.error("Cannot send message to mote");
+        }
     }
 
     /* User wants to clear all data. */
     void clear() {
-    data = new Data(this);
+        data = new Data(this);
     }
 
     public static void main(String[] args) {
-    Oscilloscope me = new Oscilloscope();
-    me.run();
+        Oscilloscope me = new Oscilloscope();
+        me.run();
     }
 }
