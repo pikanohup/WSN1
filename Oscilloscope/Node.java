@@ -38,11 +38,11 @@ class Node {
     int getData(int x, int dataType) {
         try {
             if (dataType == 0) {
-                return controls.get(x).get_light()[x];
-            } else if (dataType == 1) {
                 return controls.get(x).get_temperature()[x];
-            } else if (dataType == 2) {
+            } else if (dataType == 1) {
                 return controls.get(x).get_humidity()[x];
+            } else if (dataType == 2) {
+                return controls.get(x).get_light()[x];
             } else {
                 return -1;
             }

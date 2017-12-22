@@ -257,17 +257,17 @@ class Window {
         // Add event
         selectLight.addItemListener(new ItemListener() {
             public void itemStateChanged(ItemEvent e) {
-                graph.dataType = "light";
+                graph.dataType = 2;
             }
         });
         selectHumidity.addItemListener(new ItemListener() {
             public void itemStateChanged(ItemEvent e) {
-                graph.dataType = "humidity";
+                graph.dataType = 1;
             }
         });
         selectTemperature.addItemListener(new ItemListener() {
             public void itemStateChanged(ItemEvent e) {
-                graph.dataType = "temperature";
+                graph.dataType = 0;
             }
         });
         // Add to window

@@ -54,7 +54,7 @@ public class Oscilloscope implements MessageListener
         window = new Window(this);
         window.setup();
         mote = new MoteIF(PrintStreamMessenger.err);
-        mote.registerListener(new OscilloscopeMsg(), this);
+        mote.registerListener(new SampleMsg(), this);
 
         /* create result file */
         try {
@@ -72,8 +72,8 @@ public class Oscilloscope implements MessageListener
 
     public synchronized void messageReceived(int dest_addr,
             Message msg) {
-        if (msg instanceof OscilloscopeMsg) {
-            OscilloscopeMsg omsg = (OscilloscopeMsg)msg;
+        if (msg instanceof SampleMsg) {
+            SampleMsg omsg = (SampleMsg)msg;
 
             /* Update interval and mote data */
             periodUpdate(omsg.get_version(), omsg.get_interval());

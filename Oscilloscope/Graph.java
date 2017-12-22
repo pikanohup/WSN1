@@ -38,7 +38,7 @@ class Graph extends JPanel
     double xscale, yscale;
 
     /* 0: temperature; 1: humidity; 2: light */
-    int dataType = 0;
+    public int dataType = 0;
 
     void updateConversion() {
         height = getHeight() - BORDER_TOP - BORDER_BOTTOM;
