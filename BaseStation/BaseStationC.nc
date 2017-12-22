@@ -69,22 +69,25 @@ configuration BaseStationC {
 implementation {
   components MainC, BaseStationP, LedsC;
   components ActiveMessageC as Radio, SerialActiveMessageC as Serial;
+  components new AMSenderC(AM_CONTROL_MSG);
+  components new AMReceiverC(AM_SAMPLE_MSG);
+  components new SerialAMSenderC(AM_SAMPLE_MSG);
+  components new SerialAMReceiverC(AM_CONTROL_MSG);
   
   MainC.Boot <- BaseStationP;
 
   BaseStationP.RadioControl -> Radio;
   BaseStationP.SerialControl -> Serial;
   
-  BaseStationP.UartSend -> Serial;
-  BaseStationP.UartReceive -> Serial.Receive;
-  BaseStationP.UartPacket -> Serial;
-  BaseStationP.UartAMPacket -> Serial;
+  BaseStationP.RadioAMSend -> AMSenderC;
+  BaseStationP.RadioReceive -> AMReceiverC;
+  BaseStationP.RadioPacket -> AMSenderC;
+  BaseStationP.RadioAMPacket -> AMSenderC;
   
-  BaseStationP.RadioSend -> Radio;
-  BaseStationP.RadioReceive -> Radio.Receive;
-  BaseStationP.RadioSnoop -> Radio.Snoop;
-  BaseStationP.RadioPacket -> Radio;
-  BaseStationP.RadioAMPacket -> Radio;
+  BaseStationP.SerialAMSend -> SerialAMSenderC;
+  BaseStationP.SerialReceive -> SerialAMReceiverC;
+  BaseStationP.SerialPacket -> SerialAMSenderC;
+  BaseStationP.SerialAMPacket -> SerialAMSenderC;
   
   BaseStationP.Leds -> LedsC;
 }
