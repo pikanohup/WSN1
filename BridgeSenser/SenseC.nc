@@ -34,7 +34,7 @@
  */
 
 /**
- * 
+ *
  * Sensing demo application. See README.txt file in this directory for usage
  * instructions and have a look at tinyos-2.x/doc/html/tutorial/lesson5.html
  * for a general tutorial on sensing in TinyOS.
@@ -47,63 +47,190 @@
 #include "SensirionSht11.h"
 #include "../BaseStation/Msg.h"
 
-module SenseC
+module SensorC
 {
   uses {
     interface Boot;
     interface Leds;
     interface Timer<TMilli>;
+    interface Packet;
+    interface AMPacket;
+    interface AMSend;
+    interface SplitControl as RadioControl;
     interface Read<uint16_t> as TemperatureRead;
-	interface Read<uint16_t> as HumidityRead;
-	interface Read<uint16_t> as LightRead;
+	  interface Read<uint16_t> as HumidityRead;
+	  interface Read<uint16_t> as LightRead;
+    interface Receive as SampleMsgReceiver;
+    interface Receive as CommandMsgReceiver;
   }
 }
 implementation
-{  
-  event void Boot.booted() {
-    call Timer.startPeriodic(DEFAULT_INTERVAL);
+{
+  enum {
+    MSG_QUEUE_LEN = 12
+  };
+
+  SampleMsg cur_message;
+  message_t msgQueue[MSG_QUEUE_LEN];
+
+  uint8_t num_information = 0; // once reached 3, packet ready
+  uint8_t cur_Version = 0;
+  uint32_t queueHead = 0;
+  uint32_t queueTail = 0;
+  uint16_t cur_frequency = DEFAULT_INTERVAL;
+  bool Busy = FALSE;
+
+  void SendMsg(SampleMsg* msg);
+  void Init();
+  void checkPacket();
+
+/*------------------init part-----------------------*/
+  void Init() {
+    cur_message.nodeId = TOS_NODE_ID;
+    cur_message.time = 0;
   }
 
-  event void Timer.fired() 
+  void checkPacket() {
+    if (num_information >= 3) {
+      SendMsg(&cur_message);
+      num_information = 0;
+    }
+  }
+
+  event void Boot.booted() {
+    Init();
+    call RadioControl.start();
+  }
+
+  event void RadioControl.startDone(error_t err) {
+    if(err == SUCCESS) {
+      call Timer.startPeriodic(cur_frequency);
+    }
+    else {
+      call RadioControl.start();
+    }
+  }
+
+  event void RadioControl.stopDone(error_t err) {
+
+  }
+
+/*------------------send part-----------------------*/
+  event void Timer.fired()
   {
     call TemperatureRead.read();
     call HumidityRead.read();
     call LightRead.read();
   }
 
-  event void TemperatureRead.readDone(error_t result, uint16_t data) 
+  event void TemperatureRead.readDone(error_t result, uint16_t data)
   {
     if (result == SUCCESS) {
-	  uint16_t temperature = (uint16_t)((data * 0.01 - 40.1) - 32) / 1.8;
-	  printf("Temperature: %d\n", temperature);
+  	  uint16_t temperature = (uint16_t)((data * 0.01 - 40.1) - 32) / 1.8;
+      cur_message.temperature = temperature;
+      num_information = num_information + 1;
+      checkPacket();
+  	  printf("Temperature: %d\n", temperature);
     }
 	else {
       printf("Get temperature failed\n");
       call TemperatureRead.read();
     }
   }
-  
-  event void HumidityRead.readDone(error_t result, uint16_t data) 
+
+  event void HumidityRead.readDone(error_t result, uint16_t data)
   {
     if (result == SUCCESS) {
-	  uint16_t humidity = (uint16_t)(-4 + 0.0405 * data + (-2.8 * 0.00001) * (data * data));
-	  printf("Humidity: %d\n", humidity);
+  	  uint16_t humidity = (uint16_t)(-4 + 0.0405 * data + (-2.8 * 0.00001) * (data * data));
+      cur_message.humidity = humidity;
+      num_information = num_information + 1;
+      checkPacket();
+      printf("Humidity: %d\n", humidity);
     }
 	else {
       printf("Get humidity failed\n");
       call HumidityRead.read();
     }
   }
-  
-  event void LightRead.readDone(error_t result, uint16_t data) 
+
+  event void LightRead.readDone(error_t result, uint16_t data)
   {
-    if (result == SUCCESS) {
+    if(result == SUCCESS) {
       uint16_t light = 0.625 * 10 * data * 1.5 / 4.096;
-	  printf("Light: %d\n", light);
+      cur_message.light = light;
+      num_information = num_information + 1;
+      checkPacket();
+	    printf("Light: %d\n", light);
     }
 	else {
       printf("Get light failed\n");
       call LightRead.read();
     }
   }
+
+/*------------------send part-----------------------*/
+  task void SendTask() {
+    message_t* packet = msgQueue + queueTail % MSG_QUEUE_LEN;
+
+    if (call AMSend.send(AM_BROADCAST_ADDR, packet, sizeof(SampleMsg)) == SUCCESS) {
+      Busy = TRUE;    // update busy state
+    } else {
+      queueHead = (queueHead + 1) % MSG_QUEUE_LEN;
+      if (queueHead < queueTail) {
+        post SendTask();
+      }
+    }
+  }
+
+  void SendMsg(SampleMsg* msg) {
+    /*queue full*/
+    if (queueHead + MSG_QUEUE_LEN <= queueTail) {
+      return;
+    }
+
+    message_t* packet = msgQueue + queueTail % MSG_QUEUE_LEN;
+    void* payload = call AMSend.getPayloa(packet, sizeof(SampleMsg));
+
+    memcpy(payload, msg, sizeof(SampleMsg));
+
+    if (queueHead == queueTail) {
+      post SendTask();
+    }
+
+    queueTail = (queueTail + 1) % MSG_QUEUE_LEN;
+  }
+
+  event void AMSend.sendDone(message_t* msg, error_t srr) {
+    Busy = FALSE;
+    queueHead = (queueHead + 1) % MSG_QUEUE_LEN;
+
+    if (queueHead > queueTail) {
+      post SendTask();
+    }
+  }
+
+/*------------------receive part-----------------------*/
+  event message_t* CommandMsgReceiver.receive(message_t* msg, void payload, uint8_t len) {
+    if( len == sizeof(CommandMsg)) {
+      CommandMsg* cur_commandMsg = (CommandMsg*)payload;
+      if(cur_commandMsg.version > cur_Version) {
+        cur_Version = cur_commandMsg.version;
+        cur_frequency = cur_commandMsg.frequency;
+        call Timer.stop();
+        call Timer.startPeriodic(cur_frequency);
+      }
+    }
+    return msg;
+  }
+
+  event message_t* SampleMsgReceiver.receive(message_t* msg, void payload, uint8_t len) {
+    if(len == sizeof(SampleMsg)) {
+      SampleMsg* cur_sampleMsg = (SampleMsg*)payload;
+      if(cur_sampleMsg->nodeId == SENSOR_ID) {
+        SendMsg(cur_sampleMsg);
+      }
+    }
+    return msg;
+  }
+
 }
