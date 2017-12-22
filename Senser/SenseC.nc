@@ -114,7 +114,7 @@ implementation
 
   }
 
-/*------------------send part-----------------------*/
+/*------------------sense part-----------------------*/
   event void Timer.fired()
   {
     call TemperatureRead.read();
