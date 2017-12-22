@@ -132,7 +132,7 @@ public class Oscilloscope implements MessageListener
 
     /* Broadcast a version+interval message. */
     void sendInterval() {
-        ControlMsg msg = new ControlMsg();
+        CommandMsg msg = new CommandMsg();
 
         msg.set_version(version);
         msg.set_frequency(interval);

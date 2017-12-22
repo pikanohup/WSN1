@@ -20,11 +20,11 @@ class Node {
     /* Data received from the mote. data[0] is the dataStart'th sample
        Indexes 0 through dataEnd - dataStart - 1 hold data.
        Samples are 16-bit unsigned numbers, -1 indicates missing data. */
-    ArrayList<ControlMsg> controls = new ArrayList<ControlMsg>();
+    ArrayList<CommandMsg> controls = new ArrayList<CommandMsg>();
 
     Node(int _id) { id = _id; }
 
-    void update(ControlMsg msg) {
+    void update(CommandMsg msg) {
         int dataStart;
         if (controls.size == 0) { dataStart = msg.get_time(); }
         int index = msg.get_time() - dataStart;
