@@ -1,6 +1,6 @@
 GEN = SampleMsg.java CommandMsg.java Constants.java
 
-CONSTANTS = DEFAULT_INTERVAL AM_SAMPLE_MSG AM_COMMAND_MSG
+CONSTANTS = DEFAULT_INTERVAL AM_SAMPLEMSG AM_COMMANDMSG
 
 all: oscilloscope.jar
 

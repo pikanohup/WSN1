@@ -56,8 +56,8 @@ implementation {
   components new SensirionSht11C();
 
   components ActiveMessageC;
-  components new AMSenderC(AM_SAMPLE_MSG);
-  components new AMReceiverC(AM_COMMAND_MSG);
+  components new AMSenderC(AM_SAMPLEMSG);
+  components new AMReceiverC(AM_COMMANDMSG);
 
   SensorC -> MainC.Boot;
   SensorC.Leds -> LedsC;

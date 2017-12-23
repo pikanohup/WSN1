@@ -69,10 +69,10 @@ configuration BaseStationC {
 implementation {
   components MainC, BaseStationP, LedsC;
   components ActiveMessageC as Radio, SerialActiveMessageC as Serial;
-  components new AMSenderC(AM_COMMAND_MSG);
-  components new AMReceiverC(AM_SAMPLE_MSG);
-  components new SerialAMSenderC(AM_SAMPLE_MSG);
-  components new SerialAMReceiverC(AM_COMMAND_MSG);
+  components new AMSenderC(AM_COMMANDMSG);
+  components new AMReceiverC(AM_SAMPLEMSG);
+  components new SerialAMSenderC(AM_SAMPLEMSG);
+  components new SerialAMReceiverC(AM_COMMANDMSG);
   
   MainC.Boot <- BaseStationP;
 
