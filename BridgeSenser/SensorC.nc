@@ -183,13 +183,16 @@ implementation
   }
 
   void SendMsg(SampleMsg* msg) {
+    message_t* packet;
+    void* payload;
+
     /*queue full*/
     if (queueHead + MSG_QUEUE_LEN <= queueTail) {
       return;
     }
 
-    message_t* packet = msgQueue + queueTail % MSG_QUEUE_LEN;
-    void* payload = call AMSend.getPayloa(packet, sizeof(SampleMsg));
+    packet = msgQueue + queueTail % MSG_QUEUE_LEN;
+    payload = call AMSend.getPayload(packet, sizeof(SampleMsg));
 
     memcpy(payload, msg, sizeof(SampleMsg));
 
@@ -210,12 +213,13 @@ implementation
   }
 
 /*------------------receive part-----------------------*/
-  event message_t* CommandMsgReceiver.receive(message_t* msg, void payload, uint8_t len) {
+
+  event message_t* CommandMsgReceiver.receive(message_t* msg, void* payload, uint8_t len) {
     if( len == sizeof(CommandMsg)) {
       CommandMsg* cur_commandMsg = (CommandMsg*)payload;
-      if(cur_commandMsg.version > cur_Version) {
-        cur_Version = cur_commandMsg.version;
-        cur_frequency = cur_commandMsg.frequency;
+      if(cur_commandMsg->version > cur_Version) {
+        cur_Version = cur_commandMsg->version;
+        cur_frequency = cur_commandMsg->frequency;
         call Timer.stop();
         call Timer.startPeriodic(cur_frequency);
       }
@@ -223,7 +227,7 @@ implementation
     return msg;
   }
 
-  event message_t* SampleMsgReceiver.receive(message_t* msg, void payload, uint8_t len) {
+  event message_t* SampleMsgReceiver.receive(message_t* msg, void* payload, uint8_t len) {
     if(len == sizeof(SampleMsg)) {
       SampleMsg* cur_sampleMsg = (SampleMsg*)payload;
       if(cur_sampleMsg->nodeId == SENSOR_ID) {
