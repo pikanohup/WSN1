@@ -90,10 +90,11 @@ public class Oscilloscope implements MessageListener
     /* Print out the data */
     void printData(SampleMsg msg) {
         String data = msg.get_nodeId() + " " +
-                        msg.get_time() + " " +
+                        msg.get_sequence_number() + " " +
                         msg.get_temperature() + " " +
                         msg.get_humidity() + " " +
-                        msg.get_light();
+						msg.get_light() + " " +
+                        msg.get_time();
 
         /* Print to file */
         printWriter.println(data);

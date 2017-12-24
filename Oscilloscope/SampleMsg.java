@@ -7,12 +7,12 @@
 public class SampleMsg extends net.tinyos.message.Message {
 
     /** The default size of this message type in bytes. */
-    public static final int DEFAULT_MESSAGE_SIZE = 13;
+    public static final int DEFAULT_MESSAGE_SIZE = 17;
 
     /** The Active Message type associated with this message. */
     public static final int AM_TYPE = 147;
 
-    /** Create a new SampleMsg of size 13. */
+    /** Create a new SampleMsg of size 17. */
     public SampleMsg() {
         super(DEFAULT_MESSAGE_SIZE);
         amTypeSet(AM_TYPE);
@@ -86,6 +86,9 @@ public class SampleMsg extends net.tinyos.message.Message {
       String s = "Message <SampleMsg> \n";
       try {
         s += "  [nodeId=0x"+Long.toHexString(get_nodeId())+"]\n";
+      } catch (ArrayIndexOutOfBoundsException aioobe) { /* Skip field */ }
+      try {
+        s += "  [sequence_number=0x"+Long.toHexString(get_sequence_number())+"]\n";
       } catch (ArrayIndexOutOfBoundsException aioobe) { /* Skip field */ }
       try {
         s += "  [frequency=0x"+Long.toHexString(get_frequency())+"]\n";
@@ -174,9 +177,72 @@ public class SampleMsg extends net.tinyos.message.Message {
     }
 
     /////////////////////////////////////////////////////////
-    // Accessor methods for field: frequency
+    // Accessor methods for field: sequence_number
     //   Field type: int, unsigned
     //   Offset (bits): 8
+    //   Size (bits): 16
+    /////////////////////////////////////////////////////////
+
+    /**
+     * Return whether the field 'sequence_number' is signed (false).
+     */
+    public static boolean isSigned_sequence_number() {
+        return false;
+    }
+
+    /**
+     * Return whether the field 'sequence_number' is an array (false).
+     */
+    public static boolean isArray_sequence_number() {
+        return false;
+    }
+
+    /**
+     * Return the offset (in bytes) of the field 'sequence_number'
+     */
+    public static int offset_sequence_number() {
+        return (8 / 8);
+    }
+
+    /**
+     * Return the offset (in bits) of the field 'sequence_number'
+     */
+    public static int offsetBits_sequence_number() {
+        return 8;
+    }
+
+    /**
+     * Return the value (as a int) of the field 'sequence_number'
+     */
+    public int get_sequence_number() {
+        return (int)getUIntBEElement(offsetBits_sequence_number(), 16);
+    }
+
+    /**
+     * Set the value of the field 'sequence_number'
+     */
+    public void set_sequence_number(int value) {
+        setUIntBEElement(offsetBits_sequence_number(), 16, value);
+    }
+
+    /**
+     * Return the size, in bytes, of the field 'sequence_number'
+     */
+    public static int size_sequence_number() {
+        return (16 / 8);
+    }
+
+    /**
+     * Return the size, in bits, of the field 'sequence_number'
+     */
+    public static int sizeBits_sequence_number() {
+        return 16;
+    }
+
+    /////////////////////////////////////////////////////////
+    // Accessor methods for field: frequency
+    //   Field type: int, unsigned
+    //   Offset (bits): 24
     //   Size (bits): 16
     /////////////////////////////////////////////////////////
 
@@ -198,14 +264,14 @@ public class SampleMsg extends net.tinyos.message.Message {
      * Return the offset (in bytes) of the field 'frequency'
      */
     public static int offset_frequency() {
-        return (8 / 8);
+        return (24 / 8);
     }
 
     /**
      * Return the offset (in bits) of the field 'frequency'
      */
     public static int offsetBits_frequency() {
-        return 8;
+        return 24;
     }
 
     /**
@@ -239,7 +305,7 @@ public class SampleMsg extends net.tinyos.message.Message {
     /////////////////////////////////////////////////////////
     // Accessor methods for field: version
     //   Field type: int, unsigned
-    //   Offset (bits): 24
+    //   Offset (bits): 40
     //   Size (bits): 16
     /////////////////////////////////////////////////////////
 
@@ -261,14 +327,14 @@ public class SampleMsg extends net.tinyos.message.Message {
      * Return the offset (in bytes) of the field 'version'
      */
     public static int offset_version() {
-        return (24 / 8);
+        return (40 / 8);
     }
 
     /**
      * Return the offset (in bits) of the field 'version'
      */
     public static int offsetBits_version() {
-        return 24;
+        return 40;
     }
 
     /**
@@ -301,9 +367,9 @@ public class SampleMsg extends net.tinyos.message.Message {
 
     /////////////////////////////////////////////////////////
     // Accessor methods for field: time
-    //   Field type: int, unsigned
-    //   Offset (bits): 40
-    //   Size (bits): 16
+    //   Field type: long, unsigned
+    //   Offset (bits): 56
+    //   Size (bits): 32
     /////////////////////////////////////////////////////////
 
     /**
@@ -324,48 +390,48 @@ public class SampleMsg extends net.tinyos.message.Message {
      * Return the offset (in bytes) of the field 'time'
      */
     public static int offset_time() {
-        return (40 / 8);
+        return (56 / 8);
     }
 
     /**
      * Return the offset (in bits) of the field 'time'
      */
     public static int offsetBits_time() {
-        return 40;
+        return 56;
     }
 
     /**
-     * Return the value (as a int) of the field 'time'
+     * Return the value (as a long) of the field 'time'
      */
-    public int get_time() {
-        return (int)getUIntBEElement(offsetBits_time(), 16);
+    public long get_time() {
+        return (long)getUIntBEElement(offsetBits_time(), 32);
     }
 
     /**
      * Set the value of the field 'time'
      */
-    public void set_time(int value) {
-        setUIntBEElement(offsetBits_time(), 16, value);
+    public void set_time(long value) {
+        setUIntBEElement(offsetBits_time(), 32, value);
     }
 
     /**
      * Return the size, in bytes, of the field 'time'
      */
     public static int size_time() {
-        return (16 / 8);
+        return (32 / 8);
     }
 
     /**
      * Return the size, in bits, of the field 'time'
      */
     public static int sizeBits_time() {
-        return 16;
+        return 32;
     }
 
     /////////////////////////////////////////////////////////
     // Accessor methods for field: temperature
     //   Field type: int, unsigned
-    //   Offset (bits): 56
+    //   Offset (bits): 88
     //   Size (bits): 16
     /////////////////////////////////////////////////////////
 
@@ -387,14 +453,14 @@ public class SampleMsg extends net.tinyos.message.Message {
      * Return the offset (in bytes) of the field 'temperature'
      */
     public static int offset_temperature() {
-        return (56 / 8);
+        return (88 / 8);
     }
 
     /**
      * Return the offset (in bits) of the field 'temperature'
      */
     public static int offsetBits_temperature() {
-        return 56;
+        return 88;
     }
 
     /**
@@ -428,7 +494,7 @@ public class SampleMsg extends net.tinyos.message.Message {
     /////////////////////////////////////////////////////////
     // Accessor methods for field: humidity
     //   Field type: int, unsigned
-    //   Offset (bits): 72
+    //   Offset (bits): 104
     //   Size (bits): 16
     /////////////////////////////////////////////////////////
 
@@ -450,14 +516,14 @@ public class SampleMsg extends net.tinyos.message.Message {
      * Return the offset (in bytes) of the field 'humidity'
      */
     public static int offset_humidity() {
-        return (72 / 8);
+        return (104 / 8);
     }
 
     /**
      * Return the offset (in bits) of the field 'humidity'
      */
     public static int offsetBits_humidity() {
-        return 72;
+        return 104;
     }
 
     /**
@@ -491,7 +557,7 @@ public class SampleMsg extends net.tinyos.message.Message {
     /////////////////////////////////////////////////////////
     // Accessor methods for field: light
     //   Field type: int, unsigned
-    //   Offset (bits): 88
+    //   Offset (bits): 120
     //   Size (bits): 16
     /////////////////////////////////////////////////////////
 
@@ -513,14 +579,14 @@ public class SampleMsg extends net.tinyos.message.Message {
      * Return the offset (in bytes) of the field 'light'
      */
     public static int offset_light() {
-        return (88 / 8);
+        return (120 / 8);
     }
 
     /**
      * Return the offset (in bits) of the field 'light'
      */
     public static int offsetBits_light() {
-        return 88;
+        return 120;
     }
 
     /**

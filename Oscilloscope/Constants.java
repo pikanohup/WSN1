@@ -6,6 +6,6 @@
 
 public class Constants  {
     public static final short AM_SAMPLEMSG = 147;
-    public static final short AM_COMMANDMSG = 148;
     public static final byte DEFAULT_INTERVAL = 100;
+    public static final short AM_COMMANDMSG = 148;
 }

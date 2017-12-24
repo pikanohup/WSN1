@@ -244,8 +244,8 @@ class Graph extends JPanel
     /* User attempted to set Y-axis range to newy0..newy1. Refuse bogus
        values (return false), or accept, redraw and return true. */
     boolean setYAxis(int newy0, int newy1) {
-        if (newy0 >= newy1 || newy0 < 0 || newy0 > 65535 ||
-            newy1 < 0 || newy1 > 65535) {
+        if (newy0 >= newy1 || newy0 < 0 || newy0 > 200 ||
+            newy1 < 0 || newy1 > 200) {
             return false;
         }
         gy0 = newy0;

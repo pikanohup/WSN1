@@ -28,8 +28,8 @@ class Node {
 
     void update(SampleMsg msg) {
         
-        if (samples.isEmpty()) { dataStart = msg.get_time(); }
-        int index = msg.get_time() - dataStart;
+        if (samples.isEmpty()) { dataStart = msg.get_sequence_number(); }
+        int index = msg.get_sequence_number() - dataStart;
         if (index < 0) { return; }
         // Fill the list with empty data
         while (samples.size() <= index) { samples.add(null); }
