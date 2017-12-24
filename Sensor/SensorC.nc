@@ -83,7 +83,7 @@ implementation
 
 /*------------------init part-----------------------*/
   void Init() {
-    cur_message.nodeId = TOS_NODE_ID;
+    cur_message.nodeId = SENSOR_ID;
 	cur_message.version = 0;
     cur_message.frequency = DEFAULT_INTERVAL;
     cur_message.time = 0;
