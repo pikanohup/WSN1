@@ -51,6 +51,7 @@ module BaseStationP @safe() {
   uses {
     interface Boot;
 	
+	interface Timer<TMilli> as Timer;
     interface SplitControl as SerialControl;
     interface SplitControl as RadioControl;
 	
@@ -75,19 +76,18 @@ implementation
 	SERIAL_QUEUE_LEN = 12,
   };
 
-  message_t  * ONE_NOK serialQueue[SERIAL_QUEUE_LEN];
+  message_t  serialQueue[SERIAL_QUEUE_LEN];
   uint8_t    serialIn, serialOut;
-  bool       serialBusy, serialFull;
+  bool       serialBusy;
 
-  message_t  * ONE_NOK radioQueue[RADIO_QUEUE_LEN];
+  message_t  radioQueue[RADIO_QUEUE_LEN];
   uint8_t    radioIn, radioOut;
-  bool       radioBusy, radioFull;
+  bool       radioBusy;
 
   task void serialSendTask();
-  task void radioSendTask();
 
   message_t* forwardSampleMsg(message_t* msg, void* payload, uint8_t len);
-  message_t* forwardControlMsg(message_t* msg, void* payload, uint8_t len);
+  message_t* forwardCommandMsg(message_t* msg, void* payload, uint8_t len);
 
   void dropBlink() {
     call Leds.led2Toggle();
@@ -100,36 +100,45 @@ implementation
   event void Boot.booted() {
     serialIn = serialOut = 0;
     serialBusy = FALSE;
-    serialFull = TRUE;
 
     radioIn = radioOut = 0;
     radioBusy = FALSE;
-    radioFull = TRUE;
 	
     call RadioControl.start();
     call SerialControl.start();
   }
 
   event void RadioControl.startDone(error_t error) {
-    if (error == SUCCESS) {
-      radioFull = FALSE;
-    }
-	else {
+    if (error != SUCCESS) {
 	  call RadioControl.start();
 	}
   }
 
   event void SerialControl.startDone(error_t error) {
-    if (error == SUCCESS) {
-      serialFull = FALSE;
-    }
-	else {
+    if (error != SUCCESS) {
 	  call SerialControl.start();
 	}
   }
 
   event void SerialControl.stopDone(error_t error) {}
   event void RadioControl.stopDone(error_t error) {}
+  
+  event void Timer.fired() {
+	message_t* msg;
+
+	if (radioIn == radioOut || radioBusy)
+		return;
+
+	msg = radioQueue + radioOut % RADIO_QUEUE_LEN;
+	if (call RadioAMSend.send(AM_BROADCAST_ADDR, msg, sizeof(CommandMsg)) == SUCCESS) {
+		radioBusy = TRUE;
+		call Leds.led0Toggle();
+	}
+	else {
+		radioOut++;
+		failBlink();
+	}
+  }
 
   event message_t *RadioReceive.receive(message_t *msg,
 						    void *payload,
@@ -144,141 +153,83 @@ implementation
 						    void *payload,
 						    uint8_t len) {
     if (len == sizeof(CommandMsg)) {
-       return forwardControlMsg(msg, payload, len);
+       return forwardCommandMsg(msg, payload, len);
     }
     return msg;
   }
   
   task void serialSendTask() {
-	am_addr_t source;
     message_t* msg;
 	
-    atomic
-      if (serialIn == serialOut && !serialFull) {
-	  serialBusy = FALSE;
-	  return;
-	}
-	
-	msg = serialQueue[serialOut];
-	source = call RadioAMPacket.source(msg);
-	call SerialPacket.clear(msg);
-    call SerialAMPacket.setSource(msg, source);
-
-    if (call SerialAMSend.send(AM_BROADCAST_ADDR, serialQueue[serialOut], sizeof(SampleMsg)) == SUCCESS) {
+	msg = serialQueue + serialOut%SERIAL_QUEUE_LEN;
+    if (call SerialAMSend.send(AM_BROADCAST_ADDR, msg, sizeof(SampleMsg)) == SUCCESS) {
+	  serialBusy = TRUE;
       call Leds.led0Toggle();
 	} 
     else {
+	  serialOut++;
+	  if (serialIn > serialOut) {
+        post serialSendTask();
+      }
 	  failBlink();
-	  post serialSendTask();
-    }
-  }
-  
-  task void radioSendTask() {
-	am_addr_t source;
-    message_t* msg;
-	
-    atomic
-      if (radioIn == radioOut && !radioFull) {
-	  radioBusy = FALSE;
-	  return;
-	}
-
-	msg = radioQueue[radioOut];
-	source = call SerialAMPacket.source(msg);
-	call RadioPacket.clear(msg);
-    call RadioAMPacket.setSource(msg, source);
-	
-    if (call RadioAMSend.send(AM_BROADCAST_ADDR, radioQueue[radioOut], sizeof(SampleMsg)) == SUCCESS) {
-      call Leds.led0Toggle();
-	} 
-    else {
-	  failBlink();
-	  post radioSendTask();
     }
   }
   
   message_t* forwardSampleMsg(message_t *msg, void *payload, uint8_t len) {
-    message_t *ret = msg;
-	
-    atomic {
-      if (!serialFull)
-	{
-	  ret = serialQueue[serialIn];
-	  serialQueue[serialIn] = msg;
-
-	  serialIn = (serialIn + 1) % SERIAL_QUEUE_LEN;
-	
-	  if (serialIn == serialOut)
-	    serialFull = TRUE;
-
-	  if (!serialBusy)
-	    {
-	      post serialSendTask();
-	      serialBusy = TRUE;
-	    }
+    message_t* sendMsg;
+    void* sendPayload;
+	 
+    if (serialOut + SERIAL_QUEUE_LEN <= serialIn) {
+	  return msg;
 	}
-      else
-	dropBlink();
+	
+	sendMsg = serialQueue + serialIn % SERIAL_QUEUE_LEN;
+    sendPayload = call SerialAMSend.getPayload(sendMsg, sizeof(SampleMsg));
+	memcpy(sendPayload, payload, sizeof(SampleMsg));
+	
+    if (serialIn == serialOut) {
+      post serialSendTask();
     }
-    
-    return ret;
+	serialIn++;
+	return msg;
   }
   
-  message_t* forwardControlMsg(message_t *msg, void *payload, uint8_t len) {
-    message_t *ret = msg;
-
-    atomic {
-      if (!radioFull)
-	{
-	  ret = radioQueue[radioIn];
-	  radioQueue[radioIn] = msg;
-
-	  radioIn = (radioIn + 1) % RADIO_QUEUE_LEN;
-	
-	  if (radioIn == radioOut)
-	    radioFull = TRUE;
-
-	  if (!radioBusy)
-	    {
-	      post radioSendTask();
-	      radioBusy = TRUE;
-	    }
+  message_t* forwardCommandMsg(message_t *msg, void *payload, uint8_t len) {
+    message_t* sendMsg;
+    void* sendPayload;
+	 
+    if (radioOut + RADIO_QUEUE_LEN <= radioIn) {
+	  return msg;
 	}
-      else
-	dropBlink();
-    }
-    
-    return ret;
+	
+	sendMsg = radioQueue + radioIn % RADIO_QUEUE_LEN;
+    sendPayload = call RadioAMSend.getPayload(sendMsg, sizeof(CommandMsg));
+	memcpy(sendPayload, payload, sizeof(CommandMsg));
+
+	radioIn++;
+	return msg;
   }
 
   event void SerialAMSend.sendDone(message_t* msg, error_t error) {
     if (error != SUCCESS)
       failBlink();
     else
-      atomic
-	if (msg == serialQueue[serialOut])
-	  {
-	    if (++serialOut >= SERIAL_QUEUE_LEN)
-	      serialOut = 0;
-	    if (serialFull)
-	      serialFull = FALSE;
-	  }
-    post serialSendTask();
+	  call Leds.led0Toggle();
+	  
+	serialBusy = FALSE;
+    serialOut++;
+	if (serialIn > serialOut) {
+	  post serialSendTask();
+	}
   }
 
   event void RadioAMSend.sendDone(message_t* msg, error_t error) {
     if (error != SUCCESS)
       failBlink();
     else
-      atomic
-	if (msg == radioQueue[radioOut])
-	  {
-	    if (++radioOut >= RADIO_QUEUE_LEN)
-	      radioOut = 0;
-	    if (radioFull)
-	      radioFull = FALSE;
-	  }
-    
-    post radioSendTask();
+	  call Leds.led0Toggle();
+	  
+	radioBusy = FALSE;
+    radioOut++;
   }
 }  
