@@ -104,6 +104,7 @@ implementation
     radioIn = radioOut = 0;
     radioBusy = FALSE;
 	
+	call Timer.startPeriodic(DEFAULT_INTERVAL / 2);
     call RadioControl.start();
     call SerialControl.start();
   }
