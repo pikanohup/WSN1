@@ -133,7 +133,6 @@ implementation
 	msg = radioQueue + radioOut % RADIO_QUEUE_LEN;
 	if (call RadioAMSend.send(AM_BROADCAST_ADDR, msg, sizeof(CommandMsg)) == SUCCESS) {
 		radioBusy = TRUE;
-		call Leds.led0Toggle();
 	}
 	else {
 		radioOut++;
@@ -165,7 +164,6 @@ implementation
 	msg = serialQueue + serialOut%SERIAL_QUEUE_LEN;
     if (call SerialAMSend.send(AM_BROADCAST_ADDR, msg, sizeof(SampleMsg)) == SUCCESS) {
 	  serialBusy = TRUE;
-      call Leds.led0Toggle();
 	} 
     else {
 	  serialOut++;
@@ -228,7 +226,7 @@ implementation
     if (error != SUCCESS)
       failBlink();
     else
-	  call Leds.led0Toggle();
+	  call Leds.led1Toggle();
 	  
 	radioBusy = FALSE;
     radioOut++;
